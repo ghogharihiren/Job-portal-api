@@ -33,7 +33,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 class AddpostSerializer(serializers.ModelSerializer):
     class Meta:
         model=JobPost
-        fields=['HR','position','salary','addres','categories','job_description','experience','slot','type','city']
+        fields=['position','salary','addres','categories','job_description','experience','slot','type','city']
 
 class EditpostSerializer(serializers.ModelSerializer):
     class Meta:

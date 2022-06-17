@@ -30,7 +30,7 @@ def index(request):
         'hr-list':'/hr-list/',
         'edit-hr':'/edit-hr/id',
         'delete-hr':'/delete-hr/id',
-        'edit-user':'/edit-user/id',
+        'edit-user':'/edit-user/',
         'add-job':'/add-job/',
         'my-job':'/my-job/',
         'edit-post':'/edit-post/id',
@@ -65,7 +65,6 @@ class LoginAPI(GenericAPIView):
                 login(request,user)
                 return Response({'token':token,'msg':'login Sucessfully'},status=status.HTTP_200_OK)
             else:
-                
                 return Response({'msg':"invalid email and password "},status=status.HTTP_404_NOT_FOUND)
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
 #---------------------------------------------Admin----------------------------------------------
@@ -105,8 +104,10 @@ class DeleteView(GenericAPIView):
     
     def delete(self,request,pk):
         uid=User.objects.get(id=pk)
-        uid.delete()
-        return Response('HR delete')
+        if uid.role =='hr':
+            uid.delete()
+            return Response('HR delete')
+        return Response('you can not delete admin')
 #----------------------------------------------------HR----------------------------------------------
     
 class UserProfileView(GenericAPIView):
@@ -114,14 +115,14 @@ class UserProfileView(GenericAPIView):
     queryset=User.objects.all()
     permission_classes =[IsAuthenticated]
     
-    def get(self,request,pk):
-        uid=User.objects.get(id=pk)
+    def get(self,request):
+        uid=User.objects.get(id=request.user.id)
         serializer=UserProfileSerializer(uid)
         return Response(serializer.data)
         
     
-    def put(self,request,pk):
-        uid=User.objects.get(id=pk)
+    def put(self,request):
+        uid=User.objects.get(id=request.user.id)
         serializer=UserProfileSerializer(instance=uid,data=request.data)
         if serializer.is_valid():
             serializer.save()
@@ -137,7 +138,7 @@ class PostjobView(GenericAPIView):
     def post(self,request):
         serializer=AddpostSerializer(data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(HR=request.user)
             return Response({'msg':'Job Post created'},status=status.HTTP_200_OK)
         print(serializer.errors)
         return Response({'msg':'Enter the valid data'},status=status.HTTP_404_NOT_FOUND)
@@ -161,16 +162,21 @@ class Editjobview(GenericAPIView):
     
     def get(self,request,pk):
         uid=JobPost.objects.get(id=pk)
-        serializer=EditpostSerializer(uid)
-        return Response(serializer.data)
+        if uid.HR == request.user:
+            serializer=EditpostSerializer(uid)
+            return Response(serializer.data)
+        return Response('this slot is not your')
+        
     
     def put(self,request,pk):
         uid=JobPost.objects.get(id=pk)
-        serializer=EditpostSerializer(instance=uid,data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response({'msg':'Job Post update'},status=status.HTTP_200_OK)
-        return Response({'msg':'Enter the valid data'},status=status.HTTP_404_NOT_FOUND)
+        if uid.HR == request.user:
+            serializer=EditpostSerializer(instance=uid,data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return Response({'msg':'Job Post update'},status=status.HTTP_200_OK)
+            return Response({'msg':'Enter the valid data'},status=status.HTTP_404_NOT_FOUND)
+        return Response('this slot is not your')
     
 class Deletejobview(GenericAPIView):
     permission_classes = [IsAuthenticated]
@@ -178,14 +184,19 @@ class Deletejobview(GenericAPIView):
     
     def get(self,request,pk):
         uid=JobPost.objects.get(id=pk)
-        serializer=EditpostSerializer(uid)
-        return Response(serializer.data)
-    
+        if uid.HR == request.user:
+            serializer=EditpostSerializer(uid)
+            return Response(serializer.data)
+        return Response('this slot is not your')
+           
+        
     def delete(self,request,pk):
         uid=JobPost.objects.get(id=pk)
-        uid.delete()
-        return Response('Job Post delete')
-    
+        if uid.HR == request.user:
+            uid.delete()
+            return Response('Job Post delete')
+        return Response('this slot is not your')
+        
 class MyPostApplicationView(GenericAPIView):
     queryset = JobPost.objects.all()
     serializer_class = MyPostApplicationSerializer
@@ -194,9 +205,11 @@ class MyPostApplicationView(GenericAPIView):
     
     def get(self,request,pk):
         job=JobPost.objects.get(id=pk)
-        uid=Application.objects.filter(company_name=job)
-        serializer=MyPostApplicationSerializer(uid,many=True)
-        return Response(serializer.data)
+        if job.HR == request.user:
+            uid=Application.objects.filter(company_name=job)
+            serializer=MyPostApplicationSerializer(uid,many=True)
+            return Response(serializer.data)
+        return Response('this job post is not your')
      
 #----------------------------------------------------User-------------------------------------------    
     
