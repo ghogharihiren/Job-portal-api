@@ -9,9 +9,10 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.permissions import*
 from rest_framework import status
-
-
-
+import random
+from django.contrib.auth.hashers import make_password
+from django.conf import settings
+from django.core.mail import send_mail
 
 def get_tokens_for_user(user):
     refresh = RefreshToken.for_user(user)
@@ -35,7 +36,8 @@ def index(request):
         'my-job':'/my-job/',
         'edit-post':'/edit-post/id',
         'delete-post/':'/delete-post/id',
-        'mypostapplication':'/mypostapplication/id'
+        'mypostapplication':'/mypostapplication/id',
+        'forgot-password':'/forgot-password/'
     }    
     return Response(api_url)
 
@@ -67,6 +69,29 @@ class LoginAPI(GenericAPIView):
             else:
                 return Response({'msg':"invalid email and password "},status=status.HTTP_404_NOT_FOUND)
         return Response(serializer.errors,status=status.HTTP_400_BAD_REQUEST)
+    
+class ForgotPasswordView(GenericAPIView):
+    serializer_class=ForgotPasswordSerializer
+    
+    def post(self,request):
+        serializer=ForgotPasswordSerializer(data=request.data)
+        if serializer.is_valid():
+            email=serializer.validated_data.get('email')
+            if User.objects.filter(email=email).exists():
+                user=User.objects.get(email=email)
+                password = ''.join(random.choices('qwyertovghlk34579385',k=8))
+                subject="Rest Password"
+                message = f"""Hello {user.email},Your New password is {password}"""
+                email_from = settings.EMAIL_HOST_USER
+                recipient_list = [user.email,]
+                send_mail( subject, message, email_from, recipient_list )
+                user.password=make_password(password)
+                user.save()
+                return Response('your new password send')
+            else:
+                return Response('enter your email')
+        else:
+            return Response('enter the valid data')
 #---------------------------------------------Admin----------------------------------------------
 class HrlistView(ListAPIView):
     serializer_class=UserViewSerializer
@@ -188,8 +213,7 @@ class Deletejobview(GenericAPIView):
             serializer=EditpostSerializer(uid)
             return Response(serializer.data)
         return Response('this slot is not your')
-           
-        
+            
     def delete(self,request,pk):
         uid=JobPost.objects.get(id=pk)
         if uid.HR == request.user:

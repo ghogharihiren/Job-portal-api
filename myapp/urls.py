@@ -14,7 +14,8 @@ urlpatterns = [
     path('edit-post/<int:pk>',Editjobview.as_view()),
     path('delete-post/<int:pk>',Deletejobview.as_view()),
     path('apply/',ApplicationView.as_view()),
-    path('mypostapplication/<int:pk>',MyPostApplicationView.as_view())
+    path('mypostapplication/<int:pk>',MyPostApplicationView.as_view()),
+    path('forgot-password/',ForgotPasswordView.as_view())
     
     
     

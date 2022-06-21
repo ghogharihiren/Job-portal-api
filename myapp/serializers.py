@@ -49,3 +49,10 @@ class  MyPostApplicationSerializer(serializers.ModelSerializer):
     class Meta:
         model=Application
         fields='__all__'
+        
+      
+class ForgotPasswordSerializer(serializers.ModelSerializer):
+    email=serializers.EmailField(max_length=30)
+    class Meta:
+        model=User
+        fields=['email']
